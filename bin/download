@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+current_script_path=${BASH_SOURCE[0]}
+plugin_dir=$(dirname "$(dirname "$current_script_path")")
+
+# shellcheck source=../lib/utils.bash
+source "${plugin_dir}/lib/utils.bash"
+
+mkdir -p "$ASDF_DOWNLOAD_PATH"
+
+# Get version and download URL
+version="$ASDF_INSTALL_VERSION"
+download_url=$(get_download_url "$version")
+jar_file="${ASDF_DOWNLOAD_PATH}/${TOOL_NAME}-${version}-with-dependencies.jar"
+
+echo "* Downloading ${TOOL_NAME} version ${version}..."
+download_file "$download_url" "$jar_file"
+
+echo "* Download completed: ${jar_file}"

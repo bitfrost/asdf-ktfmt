@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+current_script_path=${BASH_SOURCE[0]}
+plugin_dir=$(dirname "$(dirname "$current_script_path")")
+
+# shellcheck source=../lib/utils.bash
+source "${plugin_dir}/lib/utils.bash"
+
+# Check if Java is available
+check_java
+
+# Get version and paths
+version="$ASDF_INSTALL_VERSION"
+install_path="$ASDF_INSTALL_PATH"
+download_path="$ASDF_DOWNLOAD_PATH"
+
+# Ensure install directory exists
+ensure_dir "$install_path"
+ensure_dir "${install_path}/bin"
+ensure_dir "${install_path}/lib"
+
+# Copy the JAR file to the install directory
+jar_file="${download_path}/${TOOL_NAME}-${version}-with-dependencies.jar"
+installed_jar="${install_path}/lib/${TOOL_NAME}-${version}-with-dependencies.jar"
+
+echo "* Installing ${TOOL_NAME} version ${version}..."
+cp "$jar_file" "$installed_jar"
+
+# Create the wrapper script
+wrapper_script="${install_path}/bin/${TOOL_NAME}"
+cat > "$wrapper_script" << EOF
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Check if Java is available
+if ! command -v java >/dev/null 2>&1; then
+  echo "Error: Java is required to run ktfmt but was not found in PATH" >&2
+  echo "Please install Java 11 or later" >&2
+  exit 1
+fi
+
+# Get the directory where this script is located
+script_dir="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+jar_path="\${script_dir}/../lib/${TOOL_NAME}-${version}-with-dependencies.jar"
+
+# Execute ktfmt with all provided arguments
+exec java -jar "\$jar_path" "\$@"
+EOF
+
+# Make the wrapper script executable
+chmod +x "$wrapper_script"
+
+echo "* Installation completed successfully!"
+echo "* ktfmt ${version} is now available at: ${wrapper_script}"
